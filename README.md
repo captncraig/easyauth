@@ -42,42 +42,42 @@ const(
 
 1. Create a new `AuthManager`.
 
-```
-auth := easyAuth.New(...)
-```
-This call accepts any number of option modifiers. See [options](#options) for full options documentation.
+  ```
+  auth := easyAuth.New(...)
+  ```
+  This call accepts any number of option modifiers. See [options](#options) for full options documentation.
 
 2. Add Providers:
 
-Here I will add an ldap provider:
+  Here I will add an ldap provider:
 
-```
+  ```
 l := &ldap.LdapProvider{
     LdapAddr:          "ad.myorg.com:3269",
     DefaultPermission: RoleReader,
     Domain:            "MYORG",
 }
 auth.AddProvider("ldap", l)
-```
+  ```
 
-Anyone who enters valid credentials will be granted the "Reader" role as defined by my app's role structure.
+  Anyone who enters valid credentials will be granted the "Reader" role as defined by my app's role structure.
 
-You can add as many different providers as you wish. See [providers](#providers) for detailed info on how to use and configure indivisual providers.
+  You can add as many different providers as you wish. See [providers](#providers) for detailed info on how to use and configure indivisual providers.
 
 3. Register auth handler:
 
-```
+  ```
 http.Handle("/auth/", http.StripPrefix("/auth", auth.LoginHandler()))
-```
+  ```
 
-This handler will handle all requests to `/auth/*` and handle them as appropriate. This include login pages,
+  This handler will handle all requests to `/auth/*` and handle them as appropriate. This include login pages,
 callbacks, form posts, logout requests, deny pages and so forth.
 
 4. Apply middeware to your app's http handlers:
-```
+  ```
 http.Handle("/api/stats", auth.Wrap(myStatHandler,CanViewSystemStats))
-```
-Each handler can specify their own requirements for user capabilities to access that content.
+  ```
+  Each handler can specify their own requirements for user capabilities to access that content.
 
 ### options
 
