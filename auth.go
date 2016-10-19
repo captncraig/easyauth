@@ -146,6 +146,14 @@ func (m *authManager) buildContext(w http.ResponseWriter, r *http.Request) *http
 	return r.WithContext(ctx)
 }
 
+//Wrapper returns a middleware constructor for the given auth level. This function can be used with middleware chains
+//or by itself to create new handlers in the future
+func (m *authManager) Wrapper(required Role) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return m.Wrap(h, required)
+	}
+}
+
 func (m *authManager) Wrap(next http.Handler, required Role) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r = m.buildContext(w, r)
