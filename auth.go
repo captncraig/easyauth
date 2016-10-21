@@ -57,6 +57,7 @@ type Logoutable interface {
 type AuthManager interface {
 	AddProvider(string, AuthProvider)
 	LoginHandler() http.Handler
+	Wrapper(required Role) func(http.Handler) http.Handler
 	Wrap(next http.Handler, required Role) http.Handler
 	WrapFunc(next http.HandlerFunc, required Role) http.Handler
 }
@@ -177,7 +178,7 @@ func (m *authManager) Wrap(next http.Handler, required Role) http.Handler {
 			//logged out. redir to login
 			if strings.Contains(r.Header.Get("Accept"), "html") {
 				m.cookie.SetCookiePlain(w, redirCookirName, 10*60, r.URL.String())
-				http.Redirect(w, r, "/login", http.StatusFound) //todo: configure this
+				http.Redirect(w, r, "/login/", http.StatusFound) //todo: configure this
 			} else {
 				http.Error(w, "Access Denied", http.StatusForbidden)
 			}

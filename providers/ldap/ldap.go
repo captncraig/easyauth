@@ -24,7 +24,7 @@ type LdapProvider struct {
 	Groups []*LdapGroup
 	//Individual user permissions
 	Users map[string]easyauth.Role
-	//Root search path to check group memberships. Ex "DC=ds,DC=myorg,DC=com"
+	//Root search path to check group memberships. Ex "DC=myorg,DC=com"
 	RootSearchPath string
 
 	//Name to use for cookie
@@ -37,11 +37,6 @@ var _ easyauth.FormProvider = (*LdapProvider)(nil)
 
 type LdapGroup struct {
 	Path string
-	Role easyauth.Role
-}
-
-type LdapUser struct {
-	Name string
 	Role easyauth.Role
 }
 

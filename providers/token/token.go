@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
+	"time"
 
 	"github.com/captncraig/easyauth"
 )
@@ -25,9 +25,11 @@ type TokenDataAccess interface {
 }
 
 type Token struct {
-	Hash string // Hash of token. Don't store token itself
-	User string
-	Role easyauth.Role
+	Hash        string // Hash of token. Don't store token itself
+	User        string
+	Role        easyauth.Role
+	Description string
+	LastUsed    time.Time
 }
 
 func NewToken(secret string, data TokenDataAccess) *TokenProvider {
@@ -39,8 +41,10 @@ func NewToken(secret string, data TokenDataAccess) *TokenProvider {
 
 func (t *TokenProvider) GetUser(r *http.Request) (*easyauth.User, error) {
 	var tok string
-	if tok = r.Header.Get("x-access-token"); tok == "" {
-		if tok := r.FormValue("token"); tok == "" {
+	if cook, err := r.Cookie("AccessToken"); err == nil {
+		tok = cook.Value
+	} else if tok = r.FormValue("token"); tok == "" {
+		if tok = r.Header.Get("X-Access-Token"); tok == "" {
 			return nil, nil
 		}
 	}
@@ -65,25 +69,28 @@ func (t *TokenProvider) hashToken(tok string) string {
 	return base64.StdEncoding.EncodeToString(sum[:])
 }
 
-func (t *TokenProvider) createToken(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	if err := r.ParseForm(); err != nil {
-		return nil, err
-	}
+func (t *TokenProvider) NewToken(user, description string, role easyauth.Role) (string, error) {
 	tok := t.generateToken()
 	hash := t.hashToken(tok)
-	roleI, err := strconv.Atoi(r.FormValue("level"))
-	if err != nil {
-		return nil, fmt.Errorf("level is not a valid number")
-	}
 	token := &Token{
-		Hash: hash,
-		User: r.FormValue("user"),
-		Role: easyauth.Role(roleI),
+		Hash:        hash,
+		User:        user,
+		Role:        role,
+		Description: description,
 	}
 	if err := t.data.StoreToken(token); err != nil {
-		return nil, err
+		return "", err
 	}
 	return tok, nil
+}
+
+func (t *TokenProvider) createToken(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	tok := &Token{}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(tok); err != nil {
+		return nil, err
+	}
+	return t.NewToken(tok.User, tok.Description, tok.Role)
 }
 
 func (t *TokenProvider) listTokens(w http.ResponseWriter, r *http.Request) (interface{}, error) {

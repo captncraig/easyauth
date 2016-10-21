@@ -2,6 +2,8 @@ package redisStore
 
 import (
 	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/garyburd/redigo/redis"
 
@@ -25,23 +27,27 @@ func New(db Connector) token.TokenDataAccess {
 	}
 }
 
-const accessTokensKey = "accessTokens"
+const (
+	accessTokensKey = "accessTokens"
+	timestampsKey   = "accessTokenTimestamps"
+)
 
 func (s *store) LookupToken(hash string) (*easyauth.User, error) {
 	conn := s.Get()
 	defer conn.Close()
 
 	val, err := redis.String(conn.Do("HGET", accessTokensKey, hash))
-	if err != nil && err == redis.ErrNil {
-		return nil, nil
-	}
 	if err != nil {
+		if err == redis.ErrNil {
+			return nil, nil
+		}
 		return nil, err
 	}
 	tok := &token.Token{}
 	if err = json.Unmarshal([]byte(val), tok); err != nil {
 		return nil, err
 	}
+	conn.Do("HSET", timestampsKey, hash, time.Now().UTC().Unix()) //eat failure here
 	return &easyauth.User{
 		Access:   tok.Role,
 		Method:   "token",
@@ -77,11 +83,22 @@ func (s *store) ListTokens() ([]*token.Token, error) {
 	if err != nil {
 		return nil, err
 	}
+	timestamps, err := redis.StringMap(conn.Do("HGETALL", timestampsKey))
+	if err != nil {
+		return nil, err
+	}
+
 	toks := make([]*token.Token, 0, len(tokens))
 	for _, tok := range tokens {
 		t := &token.Token{}
 		if err = json.Unmarshal([]byte(tok), t); err != nil {
 			return nil, err
+		}
+		ts, ok := timestamps[t.Hash]
+		if ok {
+			if tsi, err := strconv.ParseInt(ts, 10, 64); err == nil {
+				time.Unix(tsi, 0).UTC()
+			}
 		}
 		toks = append(toks, t)
 	}
