@@ -97,7 +97,7 @@ func (s *store) ListTokens() ([]*token.Token, error) {
 		ts, ok := timestamps[t.Hash]
 		if ok {
 			if tsi, err := strconv.ParseInt(ts, 10, 64); err == nil {
-				time.Unix(tsi, 0).UTC()
+				t.LastUsed = time.Unix(tsi, 0).UTC()
 			}
 		}
 		toks = append(toks, t)
