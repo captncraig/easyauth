@@ -7,7 +7,6 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"github.com/captncraig/easyauth"
 	"github.com/captncraig/easyauth/providers/token"
 )
 
